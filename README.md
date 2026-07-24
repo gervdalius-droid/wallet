@@ -1,4 +1,4 @@
-# Wallet — Loyalty Cards
+# Cards
 
 A tiny, offline-first web app for keeping your loyalty/reward cards on your phone and
 showing their **barcode or QR code** at checkout — so you can leave the plastic at home.

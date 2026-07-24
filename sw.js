@@ -1,7 +1,7 @@
-/* Wallet — service worker
+/* Cards — service worker
    HTML: network-first (always get the latest app when online, fall back to cache offline)
    Static assets (libs, icons, manifest): cache-first (vendored + versioned, safe to cache) */
-const CACHE = "wallet-v2";
+const CACHE = "wallet-v3";
 const ASSETS = [
   "./",
   "./index.html",

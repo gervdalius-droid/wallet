@@ -1,6 +1,6 @@
 {
-  "name": "Wallet — Loyalty Cards",
-  "short_name": "Wallet",
+  "name": "Cards",
+  "short_name": "Cards",
   "description": "Store loyalty cards and show their barcode or QR at checkout.",
   "start_url": "./",
   "scope": "./",
