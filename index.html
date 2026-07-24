@@ -78,6 +78,25 @@
   .loyalty .name{font-size:20px;font-weight:700;letter-spacing:-.01em;text-shadow:0 1px 3px rgba(0,0,0,.25)}
   .loyalty .num{font-variant-numeric:tabular-nums;font-size:15px;opacity:.9;letter-spacing:.08em;font-weight:600;text-shadow:0 1px 2px rgba(0,0,0,.25)}
   .loyalty .fmt{position:absolute;top:16px;right:18px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.75;background:rgba(0,0,0,.18);padding:3px 8px;border-radius:20px}
+  .loyalty .logo-chip{flex:0 0 auto;width:42px;height:42px;border-radius:10px;background:#fff;display:grid;place-items:center;padding:5px;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+  .loyalty .logo-chip img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+
+  /* ---------- Reorder mode ---------- */
+  .reorder-bar{display:none;align-items:center;justify-content:space-between;gap:10px;
+    background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 8px 10px 14px;margin:0 2px 16px}
+  .reorder-bar span{color:var(--muted);font-size:14px;font-weight:500}
+  .reorder-bar button{background:var(--accent);color:#fff;font-weight:600;padding:8px 16px;border-radius:10px;font-size:15px}
+  #app.reordering .hbtns,#app.reordering #searchWrap{display:none !important}
+  #app.reordering .reorder-bar{display:flex}
+  .reordering .loyalty{touch-action:none;cursor:grab;padding-left:44px}
+  .reordering .loyalty::before{content:"";position:absolute;left:16px;top:50%;width:18px;height:12px;transform:translateY(-50%);
+    background:
+      linear-gradient(currentColor,currentColor) left 0/18px 2px no-repeat,
+      linear-gradient(currentColor,currentColor) left 5px/18px 2px no-repeat,
+      linear-gradient(currentColor,currentColor) left 10px/18px 2px no-repeat;
+    color:rgba(255,255,255,.85);opacity:.9}
+  .loyalty.dragging{z-index:20;cursor:grabbing;box-shadow:0 14px 34px rgba(0,0,0,.6);transition:none}
+  .reordering .loyalty:not(.dragging){transition:transform .18s cubic-bezier(.2,.7,.2,1)}
 
   /* ---------- Empty state ---------- */
   .empty{margin-top:12vh;text-align:center;color:var(--muted);padding:0 20px}
@@ -123,6 +142,17 @@
   .swatch.sel{border-color:#fff;transform:scale(1.08)}
   .echip.sel{border-color:var(--accent);transform:scale(1.08)}
   .swatch .chk{position:absolute;color:#fff;font-size:20px;text-shadow:0 1px 2px rgba(0,0,0,.5)}
+
+  /* logo picker */
+  .logo-picker{display:flex;align-items:center;gap:12px}
+  .logo-prev{flex:0 0 auto;width:56px;height:56px;border-radius:12px;background:var(--card2);border:1px dashed var(--line);
+    display:grid;place-items:center;overflow:hidden}
+  .logo-prev.has{background:#fff;border-style:solid}
+  .logo-prev img{max-width:100%;max-height:100%;object-fit:contain;padding:6px}
+  .logo-prev .ph{color:var(--muted);font-size:22px}
+  .logo-picker .btn{width:auto;flex:1;padding:12px 14px}
+  .logo-picker .logo-rm{flex:0 0 auto}
+  .hint-sm{color:var(--muted);font-size:12.5px;margin:8px 0 0;padding-left:4px}
 
   /* preview */
   .preview{background:#fff;border-radius:14px;padding:16px;margin:6px 0 16px;display:grid;place-items:center;min-height:120px;overflow:hidden}
@@ -184,6 +214,10 @@
       <button class="icon-btn" id="addBtn" aria-label="Add card">＋</button>
     </div>
   </header>
+  <div class="reorder-bar" id="reorderBar">
+    <span>Drag cards to reorder</span>
+    <button id="reorderDone">Done</button>
+  </div>
   <div class="search-wrap" id="searchWrap">
     <svg class="s-ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.2-4.2"/></svg>
     <input type="text" id="searchInput" placeholder="Search cards" autocomplete="off" autocorrect="off" autocapitalize="none" enterkeyhint="search">
@@ -223,7 +257,17 @@
     </div>
     <div class="preview" id="preview"><span class="hint">Enter a number to preview the barcode</span></div>
     <div class="field">
-      <label>Icon</label>
+      <label>Brand logo (optional)</label>
+      <div class="logo-picker">
+        <div class="logo-prev" id="logoPrev"><span class="ph">🖼️</span></div>
+        <button type="button" class="btn ghost" id="logoAddBtn">Choose image…</button>
+        <button type="button" class="btn danger logo-rm" id="logoRmBtn" style="display:none">Remove</button>
+      </div>
+      <p class="hint-sm">Shown on the card. If no logo, the emoji below is used.</p>
+      <input type="file" id="fLogo" accept="image/*" hidden>
+    </div>
+    <div class="field">
+      <label>Icon (used when there's no logo)</label>
       <div class="emoji-row" id="emojiRow"></div>
     </div>
     <div class="field">
@@ -257,6 +301,7 @@
     <div class="grab"></div>
     <h3>Cards</h3>
     <p class="sub" id="cardCount"></p>
+    <div class="menu-item" id="reorderBtn"><span class="mi-ic">↕️</span> Reorder cards</div>
     <div class="menu-item" id="exportBtn"><span class="mi-ic">⬇️</span> Back up cards (export JSON)</div>
     <div class="menu-item" id="importBtn"><span class="mi-ic">⬆️</span> Restore from backup (import)</div>
     <div class="menu-item" id="installBtn"><span class="mi-ic">📲</span> How to add to Home Screen</div>
@@ -404,35 +449,133 @@ function renderList(){
   const list=$("#cardList"); list.innerHTML="";
   const hasCards = cards.length>0;
   $("#emptyState").style.display = hasCards? "none":"block";
-  // show the search bar only once there's something to search
-  $("#searchWrap").style.display = cards.length>=2 ? "block":"none";
+  // search bar shows once there are 2+ cards, but never while reordering
+  $("#searchWrap").style.display = (!reorderMode && cards.length>=2) ? "block":"none";
   if(cards.length<2 && searchQuery){ searchQuery=""; $("#searchInput").value=""; $("#searchWrap").classList.remove("has-text"); }
   const q = searchQuery.trim().toLowerCase();
-  const shown = q ? cards.filter(c =>
+  // reorder mode always shows the full, unfiltered list
+  const shown = (q && !reorderMode) ? cards.filter(c =>
         (c.name||"").toLowerCase().includes(q) || (c.data||"").toLowerCase().includes(q)) : cards;
-  const noHits = hasCards && q && shown.length===0;
+  const noHits = hasCards && q && !reorderMode && shown.length===0;
   $("#noResults").style.display = noHits? "block":"none";
   if(noHits) $("#nrTerm").textContent = searchQuery.trim();
   shown.forEach(card=>{
     const c=el("div","loyalty");
     c.style.background=gradient(card.color);
     const top=el("div","top");
-    top.appendChild(el("span","emoji",card.emoji||"🎫"));
+    if(card.logo){
+      const chip=el("span","logo-chip"); const im=new Image(); im.src=card.logo; im.alt="";
+      chip.appendChild(im); top.appendChild(chip);
+    }else{
+      top.appendChild(el("span","emoji",card.emoji||"🎫"));
+    }
     top.appendChild(el("span","name",card.name||"Card"));
     c.appendChild(top);
     c.appendChild(el("div","num",last4(card.data)));
     const fmt=FMT[resolveFormat(card.format,card.data)];
     c.appendChild(el("div","fmt", fmt?fmt.label.split(" (")[0]:card.format));
-    c.addEventListener("click",()=>openShow(card.id));
+    if(reorderMode){
+      c.addEventListener("pointerdown",e=>onDragStart(e,c));
+      c.addEventListener("pointermove",onDragMove);
+      c.addEventListener("pointerup",onDragEnd);
+      c.addEventListener("pointercancel",onDragEnd);
+    }else{
+      c.addEventListener("click",()=>openShow(card.id));
+    }
     list.appendChild(c);
   });
+}
+
+/* ============================================================= *
+ *  Reorder mode (drag to reorder, pointer-based → works on touch)
+ * ============================================================= */
+let reorderMode=false, drag=null;
+function enterReorder(){
+  if(cards.length<2){ toast("Add another card to reorder"); return; }
+  reorderMode=true;
+  searchQuery=""; $("#searchInput").value=""; $("#searchWrap").classList.remove("has-text");
+  $("#app").classList.add("reordering");
+  $("#cardList").classList.add("reordering");
+  closeSheets(); renderList();
+}
+function exitReorder(){
+  reorderMode=false;
+  $("#app").classList.remove("reordering");
+  $("#cardList").classList.remove("reordering");
+  renderList();
+}
+function moveCard(from,to){
+  if(from===to || from<0 || to<0 || from>=cards.length || to>=cards.length) return;
+  const [c]=cards.splice(from,1);
+  cards.splice(to,0,c);
+  save(cards); renderList();
+}
+function onDragStart(e,cardEl){
+  if(!reorderMode || (e.button!=null && e.button>0)) return;
+  const items=[...$("#cardList").children];
+  const idx=items.indexOf(cardEl);
+  if(idx<0) return;
+  drag={el:cardEl, idx, curIdx:idx, items, startY:e.clientY, unit:cardEl.offsetHeight+14};
+  try{ cardEl.setPointerCapture(e.pointerId); }catch(_){}
+  cardEl.classList.add("dragging");
+  e.preventDefault();
+}
+function onDragMove(e){
+  if(!drag) return;
+  const dy=e.clientY-drag.startY;
+  drag.el.style.transform=`translateY(${dy}px) scale(1.03)`;
+  let target=Math.max(0, Math.min(drag.items.length-1, drag.idx + Math.round(dy/drag.unit)));
+  if(target!==drag.curIdx){
+    drag.items.forEach((it,i)=>{
+      if(it===drag.el) return;
+      let shift=0;
+      if(drag.idx<target && i>drag.idx && i<=target) shift=-drag.unit;
+      else if(drag.idx>target && i<drag.idx && i>=target) shift=drag.unit;
+      it.style.transform = shift ? `translateY(${shift}px)` : "";
+    });
+    drag.curIdx=target;
+  }
+}
+function onDragEnd(){
+  if(!drag) return;
+  const {idx,curIdx,items,el}=drag; drag=null;
+  items.forEach(it=>{ it.style.transform=""; });
+  el.classList.remove("dragging");
+  if(curIdx!==idx) moveCard(idx,curIdx);
 }
 
 /* ============================================================= *
  *  Add / edit sheet
  * ============================================================= */
 let editing=null;               // card id being edited, or null
-let selColor=COLORS[6], selEmoji=EMOJIS[0];
+let selColor=COLORS[6], selEmoji=EMOJIS[0], selLogo=null;
+
+/* Downscale + compress a chosen image to a small data URL (keeps localStorage lean) */
+function processLogo(file, cb){
+  const url=URL.createObjectURL(file);
+  const img=new Image();
+  img.onload=()=>{
+    URL.revokeObjectURL(url);
+    const max=160, scale=Math.min(1, max/Math.max(img.width,img.height));
+    const w=Math.max(1,Math.round(img.width*scale)), h=Math.max(1,Math.round(img.height*scale));
+    const cv=document.createElement("canvas"); cv.width=w; cv.height=h;
+    cv.getContext("2d").drawImage(img,0,0,w,h);
+    let out;
+    try{ out=cv.toDataURL("image/webp",0.85); if(out.indexOf("data:image/webp")!==0) out=cv.toDataURL("image/png"); }
+    catch(e){ out=cv.toDataURL("image/png"); }
+    cb(out);
+  };
+  img.onerror=()=>{ URL.revokeObjectURL(url); cb(null); };
+  img.src=url;
+}
+function renderLogoPreview(){
+  const box=$("#logoPrev");
+  box.classList.toggle("has", !!selLogo);
+  box.innerHTML = selLogo ? "" : '<span class="ph">🖼️</span>';
+  if(selLogo){ const im=new Image(); im.src=selLogo; im.alt=""; box.appendChild(im); }
+  $("#logoRmBtn").style.display = selLogo ? "block":"none";
+  $("#logoAddBtn").textContent = selLogo ? "Replace image…" : "Choose image…";
+}
 
 function buildFormChoices(){
   const sel=$("#fFormat");
@@ -478,7 +621,8 @@ function openAdd(card){
   $("#fFormat").value = card? card.format : "auto";
   selColor = card? card.color : COLORS[Math.floor(Math.random()*COLORS.length)];
   selEmoji = card? (card.emoji||EMOJIS[0]) : EMOJIS[0];
-  markEmoji(); markColor(); updatePreview();
+  selLogo = card? (card.logo||null) : null;
+  markEmoji(); markColor(); renderLogoPreview(); updatePreview();
   $("#deleteBtn").style.display = card? "block":"none";
   openSheet("#addSheet");
 }
@@ -489,10 +633,10 @@ function saveCard(){
   const fmt=$("#fFormat").value;
   if(editing){
     const c=cards.find(x=>x.id===editing);
-    Object.assign(c,{name,data,format:fmt,color:selColor,emoji:selEmoji});
+    Object.assign(c,{name,data,format:fmt,color:selColor,emoji:selEmoji,logo:selLogo});
   }else{
     cards.unshift({id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random()),
-      name,data,format:fmt,color:selColor,emoji:selEmoji,created:Date.now()});
+      name,data,format:fmt,color:selColor,emoji:selEmoji,logo:selLogo,created:Date.now()});
   }
   // clear any active search so the saved card is visible in the list
   searchQuery=""; $("#searchInput").value=""; $("#searchWrap").classList.remove("has-text");
@@ -630,6 +774,16 @@ $("#searchClear").addEventListener("click",()=>{
 $("#menuBtn").addEventListener("click",()=>{ $("#cardCount").textContent=cards.length+" card"+(cards.length===1?"":"s")+" saved"; openSheet("#menuSheet"); });
 $("#saveBtn").addEventListener("click",saveCard);
 $("#deleteBtn").addEventListener("click",deleteCard);
+$("#logoAddBtn").addEventListener("click",()=>$("#fLogo").click());
+$("#logoRmBtn").addEventListener("click",()=>{ selLogo=null; renderLogoPreview(); });
+$("#fLogo").addEventListener("change",e=>{
+  const f=e.target.files[0]; e.target.value="";
+  if(!f) return;
+  if(!f.type.startsWith("image/")){ toast("Please choose an image file"); return; }
+  processLogo(f,url=>{ if(url){ selLogo=url; renderLogoPreview(); } else toast("Couldn't read that image"); });
+});
+$("#reorderBtn").addEventListener("click",enterReorder);
+$("#reorderDone").addEventListener("click",exitReorder);
 $("#fData").addEventListener("input",updatePreview);
 $("#fName").addEventListener("input",updatePreview);
 $("#fFormat").addEventListener("change",updatePreview);
