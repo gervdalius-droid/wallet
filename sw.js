@@ -1,5 +1,7 @@
-/* Wallet — offline service worker (cache-first app shell) */
-const CACHE = "wallet-v1";
+/* Wallet — service worker
+   HTML: network-first (always get the latest app when online, fall back to cache offline)
+   Static assets (libs, icons, manifest): cache-first (vendored + versioned, safe to cache) */
+const CACHE = "wallet-v2";
 const ASSETS = [
   "./",
   "./index.html",
@@ -28,18 +30,37 @@ self.addEventListener("activate", (e) => {
 });
 
 self.addEventListener("fetch", (e) => {
-  if (e.request.method !== "GET") return;
-  e.respondWith(
-    caches.match(e.request).then((hit) => {
-      if (hit) return hit;
-      return fetch(e.request).then((res) => {
-        // runtime-cache same-origin GETs so the app keeps working offline
-        if (res && res.ok && new URL(e.request.url).origin === self.location.origin) {
+  const req = e.request;
+  if (req.method !== "GET") return;
+
+  const accept = req.headers.get("accept") || "";
+  const isHTML = req.mode === "navigate" || accept.includes("text/html");
+
+  if (isHTML) {
+    // network-first: fresh page when online, cached shell when offline
+    e.respondWith(
+      fetch(req)
+        .then((res) => {
           const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(e.request, copy));
+          caches.open(CACHE).then((c) => c.put("./index.html", copy));
+          return res;
+        })
+        .catch(() => caches.match(req).then((hit) => hit || caches.match("./index.html")))
+    );
+    return;
+  }
+
+  // cache-first for static assets
+  e.respondWith(
+    caches.match(req).then((hit) => {
+      if (hit) return hit;
+      return fetch(req).then((res) => {
+        if (res && res.ok && new URL(req.url).origin === self.location.origin) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, copy));
         }
         return res;
-      }).catch(() => caches.match("./index.html"));
+      });
     })
   );
 });
