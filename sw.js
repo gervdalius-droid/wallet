@@ -1,7 +1,7 @@
 /* Cards — service worker
    HTML: network-first (always get the latest app when online, fall back to cache offline)
    Static assets (libs, icons, manifest): cache-first (vendored + versioned, safe to cache) */
-const CACHE = "wallet-v4";
+const CACHE = "wallet-v5";
 const ASSETS = [
   "./",
   "./index.html",
@@ -9,6 +9,7 @@ const ASSETS = [
   "./lib/bwip-js.min.js",
   "./lib/zxing.min.js",
   "./icons/mark.svg",
+  "./icons/app-icon.svg",
   "./icons/icon-180.png",
   "./icons/icon-192.png",
   "./icons/icon-512.png"
