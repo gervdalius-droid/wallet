@@ -42,6 +42,21 @@
   .icon-btn{width:40px;height:40px;border-radius:50%;background:var(--card);display:grid;place-items:center;font-size:20px;transition:transform .1s, background .15s}
   .icon-btn:active{transform:scale(.9); background:var(--card2)}
 
+  /* ---------- Search ---------- */
+  .search-wrap{position:relative;margin:0 2px 16px;display:none}
+  .search-wrap input{width:100%;background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:11px 40px 11px 40px;font-size:16px;color:var(--text);outline:none;-webkit-appearance:none;appearance:none}
+  .search-wrap input::placeholder{color:var(--muted)}
+  .search-wrap input:focus{border-color:var(--accent)}
+  .search-wrap .s-ic{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+  .search-wrap .s-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:26px;height:26px;
+    border-radius:50%;background:var(--card2);color:var(--muted);display:none;place-items:center;font-size:13px;line-height:1}
+  .search-wrap.has-text .s-clear{display:grid}
+  .search-wrap .s-clear:active{transform:translateY(-50%) scale(.9)}
+  .no-results{text-align:center;color:var(--muted);padding:36px 20px}
+  .no-results .nr-ic{font-size:40px;opacity:.55;margin-bottom:6px}
+  .no-results p{margin:0;word-break:break-word}
+
   /* ---------- Card list ---------- */
   #cardList{display:flex; flex-direction:column; gap:14px}
   .loyalty{
@@ -165,7 +180,16 @@
       <button class="icon-btn" id="addBtn" aria-label="Add card">＋</button>
     </div>
   </header>
+  <div class="search-wrap" id="searchWrap">
+    <svg class="s-ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.2-4.2"/></svg>
+    <input type="text" id="searchInput" placeholder="Search cards" autocomplete="off" autocorrect="off" autocapitalize="none" enterkeyhint="search">
+    <button class="s-clear" id="searchClear" aria-label="Clear search">✕</button>
+  </div>
   <div id="cardList"></div>
+  <div class="no-results" id="noResults" style="display:none">
+    <div class="nr-ic">🔍</div>
+    <p>No cards match “<span id="nrTerm"></span>”.</p>
+  </div>
   <div class="empty" id="emptyState" style="display:none">
     <div class="big">🎫</div>
     <h2>No cards yet</h2>
@@ -371,10 +395,21 @@ function last4(d){ const s=(d||"").replace(/\s/g,""); return s.length>4?"••�
 /* ============================================================= *
  *  Render card list
  * ============================================================= */
+let searchQuery="";
 function renderList(){
   const list=$("#cardList"); list.innerHTML="";
-  $("#emptyState").style.display = cards.length? "none":"block";
-  cards.forEach(card=>{
+  const hasCards = cards.length>0;
+  $("#emptyState").style.display = hasCards? "none":"block";
+  // show the search bar only once there's something to search
+  $("#searchWrap").style.display = cards.length>=2 ? "block":"none";
+  if(cards.length<2 && searchQuery){ searchQuery=""; $("#searchInput").value=""; $("#searchWrap").classList.remove("has-text"); }
+  const q = searchQuery.trim().toLowerCase();
+  const shown = q ? cards.filter(c =>
+        (c.name||"").toLowerCase().includes(q) || (c.data||"").toLowerCase().includes(q)) : cards;
+  const noHits = hasCards && q && shown.length===0;
+  $("#noResults").style.display = noHits? "block":"none";
+  if(noHits) $("#nrTerm").textContent = searchQuery.trim();
+  shown.forEach(card=>{
     const c=el("div","loyalty");
     c.style.background=gradient(card.color);
     const top=el("div","top");
@@ -455,6 +490,8 @@ function saveCard(){
     cards.unshift({id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random()),
       name,data,format:fmt,color:selColor,emoji:selEmoji,created:Date.now()});
   }
+  // clear any active search so the saved card is visible in the list
+  searchQuery=""; $("#searchInput").value=""; $("#searchWrap").classList.remove("has-text");
   save(cards); renderList(); closeSheets(); toast(editing?"Card updated":"Card added");
 }
 
@@ -577,6 +614,15 @@ renderList();
 
 $("#addBtn").addEventListener("click",()=>openAdd(null));
 $("#emptyAdd").addEventListener("click",()=>openAdd(null));
+$("#searchInput").addEventListener("input",e=>{
+  searchQuery=e.target.value;
+  $("#searchWrap").classList.toggle("has-text", !!searchQuery);
+  renderList();
+});
+$("#searchClear").addEventListener("click",()=>{
+  searchQuery=""; $("#searchInput").value=""; $("#searchWrap").classList.remove("has-text");
+  renderList(); $("#searchInput").focus();
+});
 $("#menuBtn").addEventListener("click",()=>{ $("#cardCount").textContent=cards.length+" card"+(cards.length===1?"":"s")+" saved"; openSheet("#menuSheet"); });
 $("#saveBtn").addEventListener("click",saveCard);
 $("#deleteBtn").addEventListener("click",deleteCard);
